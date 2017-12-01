@@ -130,7 +130,10 @@ class Assignment {
 		passwrd = readEntry("Enter a password:");
 		try
 		{
-			conn = DriverManager.getConnection("jdbc:oracle:thin:@daisy.warwick.ac.uk:1521:daisy",user,passwrd);
+			conn = DriverManager.getConnection
+			// ("jdbc:oracle:thin:@daisy.warwick.ac.uk:1521:daisy",user,passwrd);
+			("jdbc:oracle:thin:@localhost:7100:daisy", user, passwrd);
+
 			return conn;
 		}
 		catch(SQLException e)
@@ -149,6 +152,16 @@ class Assignment {
 		// Code to present a looping menu, read in input data and call the appropriate option menu goes here
 		// You may use readEntry to retrieve input data
 
+
 		conn.close();
+	}
+
+	public int menu() {
+		println("Menu");
+		println("(1) In-Store Purchases");
+		println("(2) Collection");
+		println("(3) Delivery");
+		println("(4) Reserved Stock");
+		
 	}
 }
