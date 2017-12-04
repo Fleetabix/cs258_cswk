@@ -1,9 +1,16 @@
 import java.io.*;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.regex.*;
 
 class Assignment {
 
-        private static String readEntry(String prompt) 
+	static final List<String> mon = Arrays.asList("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
+
+  private static String readEntry(String prompt) 
 	{
 		try 
 		{
@@ -26,7 +33,7 @@ class Assignment {
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-        * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param staffID The id of the staff member who sold the order
 	*/
@@ -38,7 +45,7 @@ class Assignment {
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-        * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param collectionDate A string in the form of 'DD-Mon-YY' that represents the date the order will be collected
 	* @param fName The first name of the customer who will collect the order
@@ -53,7 +60,7 @@ class Assignment {
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-        * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param deliveryDate A string in the form of 'DD-Mon-YY' that represents the date the order will be delivered
 	* @param fName The first name of the customer who will receive the order
@@ -151,17 +158,104 @@ class Assignment {
 		// Incomplete
 		// Code to present a looping menu, read in input data and call the appropriate option menu goes here
 		// You may use readEntry to retrieve input data
+		int choice;
 
+		while((choice = menu()) != 0) {
+			switch(choice) {
+				case 1 : ;
+					option1();
+					break;
+			}
+		}
 
 		conn.close();
 	}
 
-	public int menu() {
-		println("Menu");
-		println("(1) In-Store Purchases");
-		println("(2) Collection");
-		println("(3) Delivery");
-		println("(4) Reserved Stock");
+	public static void option1() {
+		ArrayList<Integer> productID = new ArrayList<>();
+		ArrayList<Integer> productQuantity = new ArrayList<>();
+		String date;
+		int staffID;
+		String input;
+
+		do {
+			while(!isNumeric(input = readEntry("Enter a product ID:"))) {
+				
+				System.out.println("Please enter a numeric product ID");
+			}
+			productID.add(Integer.valueOf(input));
+
+			while(!isNumeric(input = readEntry("Enter the quantity sold:")) ||
+				Integer.valueOf(input) < 1) {
+
+				System.out.println("Please enter a numeric product quantity");
+			}
+			productQuantity.add(Integer.valueOf(input));
+
+		} while(readEntry("Is there another product in the order") == "Y");
+
+		while(!isDate(input = readEntry("Enter the date sold:"))) {
+			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+		}
+		date = input;
+
+		while(!isNumeric(input = readEntry("Enter your staff ID:"))){
+			System.out.println("Please enter a numeric staff ID");
+		}
+		staffID = Integer.valueOf(input);
+
+		option1(getConnection(), toPrimitive(productID), toPrimitive(productQuantity), date, staffID);
+
+	}
+
+	public static int menu() {
+		System.out.println("Menu");
+		System.out.println("(1) In-Store Purchases");
+		System.out.println("(2) Collection");
+		System.out.println("(3) Delivery");
+		System.out.println("(4) Biggest Sellers");
+		System.out.println("(5) Reserved Stock");
+		System.out.println("(6) Staff Life-Time Success");
+		System.out.println("(7) Staff Contribution");
+		System.out.println("(8) Employees of the Year");
+		System.out.println("(0) Quit");
+		String choice = readEntry("Enter your choice:");
+		if (choice.length() == 1 && inRange(choice.codePointAt(0), 48, 56)) return Integer.valueOf(choice);
+
+		else return -1;  
+	}
+
+	public static boolean inRange(int test, int low, int high) {
+		return !(test < low || test > high);
+	}
+
+	public static boolean isNumeric(String s) {
+		for (char c : s.toCharArray()) {
+			if (!Character.isDigit(c)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public static boolean isDate(String s) {
+		if(Pattern.matches("^\\d\\d-[a-zA-Z]{3}-\\d\\d$", s)) {
+			String month = s.substring(3, 6).toLowerCase();
+			
+			return mon.contains(month);
+		}
+		return false;
+	}
+
+	public static int[] toPrimitive(ArrayList<Integer> integers) {
 		
+		int[] res = new int[integers.size()];
+		Iterator<Integer> iterator = integers.iterator();
+		
+		for (int i = 0; i < res.length; i++) {
+			res[i] = iterator.next().intValue();
+		}
+
+		return res;
 	}
 }
