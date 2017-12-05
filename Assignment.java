@@ -33,19 +33,52 @@ class Assignment {
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+	* @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param staffID The id of the staff member who sold the order
 	*/
 	public static void option1(Connection conn, int[] productIDs, int[] quantities, String orderDate, int staffID)
 	{
-		// Incomplete - Code for option 1 goes here
+		//Insert into ORDERS table
+		String stmt = "INSERT INTO ORDERS (OrderType, OrderCompleted, OrderPlaced) ";
+		stmt += "VALUES('InStore', 1, ?);";
+		PreparedStatement p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setString(1, orderDate);
+		p.executeUpdate();
+
+		//Return newly created orderID
+		stmt = "SELECT MAX orderID FROM ORDERS;"
+		Statement s = conn.createStatement();
+		ResultSet rs =  s.executeQuery();
+		int orderID = rs.next().getInteger(0);
+
+		//Insert into ORDER_PRODUCTS for all ordered products
+		stmt = "INSERT INTO ORDER_PRODUCTS (OrderID, ProductID, ProductQuantity) ";
+		stmt += "VALUES(?, ?, ?);";
+		//Adjust quantities of products accordingly
+		stmt1 = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount - ? ";
+		stmt1 += "WHERE ProductID = ?;";
+		for (int i = 0; i < productIDs.length; i++) {
+			p = conn.prepareStatement(stmt);
+			p.clearParameters();
+			p.setInt(1, orderID);
+			p.setInt(2, ProductIDs[i]);
+			p.setInt(3, quantities[i]);
+			p.executeUpdate();
+
+			p = conn.prepareStatement(stmt1);
+			p.clearParameters();
+			p.setInt(1, quantities[i]);
+			p.setInt(2, productIDs[i]);
+		}
+
 	}
 
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  	* @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param collectionDate A string in the form of 'DD-Mon-YY' that represents the date the order will be collected
 	* @param fName The first name of the customer who will collect the order
@@ -60,7 +93,7 @@ class Assignment {
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  	* @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param deliveryDate A string in the form of 'DD-Mon-YY' that represents the date the order will be delivered
 	* @param fName The first name of the customer who will receive the order
