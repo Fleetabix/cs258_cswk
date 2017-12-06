@@ -9,6 +9,8 @@ import java.util.regex.*;
 class Assignment {
 
 	static final List<String> mon = Arrays.asList("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
+	
+
 
   private static String readEntry(String prompt) 
 	{
@@ -37,57 +39,127 @@ class Assignment {
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param staffID The id of the staff member who sold the order
 	*/
-	public static void option1(Connection conn, int[] productIDs, int[] quantities, String orderDate, int staffID)
+	public static void option1(Connection conn, int[] productIDs, int[] quantities, String orderDate, int staffID) throws SQLException
 	{
 		//Insert into ORDERS table
+		System.out.println(orderDate);
 		String stmt = "INSERT INTO ORDERS (OrderType, OrderCompleted, OrderPlaced) ";
-		stmt += "VALUES('InStore', 1, ?);";
+		stmt += "VALUES('InStore', 1, ?)";
 		PreparedStatement p = conn.prepareStatement(stmt);
 		p.clearParameters();
 		p.setString(1, orderDate);
 		p.executeUpdate();
 
 		//Return newly created orderID
-		stmt = "SELECT MAX orderID FROM ORDERS;"
+		stmt = "SELECT MAX (OrderID) FROM ORDERS";
 		Statement s = conn.createStatement();
-		ResultSet rs =  s.executeQuery();
-		int orderID = rs.next().getInteger(0);
-
+		ResultSet rs =  s.executeQuery(stmt);
+		rs.next();
+		int orderID = rs.getInt(1);
+		System.out.println(orderID);
 		//Insert into ORDER_PRODUCTS for all ordered products
-		stmt = "INSERT INTO ORDER_PRODUCTS (OrderID, ProductID, ProductQuantity) ";
-		stmt += "VALUES(?, ?, ?);";
+		stmt = "INSERT INTO ORDER_PRODUCTS VALUES(?, ?, ?)";
 		//Adjust quantities of products accordingly
-		stmt1 = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount - ? ";
-		stmt1 += "WHERE ProductID = ?;";
+		String stmt1 = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount - ? ";
+		stmt1 += "WHERE ProductID = ?";
+		p = conn.prepareStatement(stmt);
+		PreparedStatement p1 = conn.prepareStatement(stmt1);
+		p.clearParameters();
+		p.setInt(1, orderID);
+		p1.clearParameters();
 		for (int i = 0; i < productIDs.length; i++) {
-			p = conn.prepareStatement(stmt);
-			p.clearParameters();
-			p.setInt(1, orderID);
-			p.setInt(2, ProductIDs[i]);
+			System.out.println("Still running");
+			p.setInt(2, productIDs[i]);
 			p.setInt(3, quantities[i]);
 			p.executeUpdate();
 
-			p = conn.prepareStatement(stmt1);
-			p.clearParameters();
-			p.setInt(1, quantities[i]);
-			p.setInt(2, productIDs[i]);
+			System.out.println("Still running");
+			p1.setInt(1, quantities[i]);
+			p1.setInt(2, productIDs[i]);
+			p1.executeUpdate();
 		}
+		System.out.println("Still running");
+		//Update staff order table
+		stmt = "INSERT INTO STAFF_ORDERS VALUES(?, ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setInt(1, staffID);
+		p.setInt(2, orderID);
+		p.executeUpdate();
 
+		printQuantities(conn, productIDs);
 	}
 
 	/**
 	* @param conn An open database connection 
 	* @param productIDs An array of productIDs associated with an order
-  	* @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
+  * @param quantities An array of quantities of a product. The index of a quantity correspeonds with an index in productIDs
 	* @param orderDate A string in the form of 'DD-Mon-YY' that represents the date the order was made
 	* @param collectionDate A string in the form of 'DD-Mon-YY' that represents the date the order will be collected
 	* @param fName The first name of the customer who will collect the order
 	* @param LName The last name of the customer who will collect the order
 	* @param staffID The id of the staff member who sold the order
 	*/
-	public static void option2(Connection conn, int[] productIDs, int[] quantities, String orderDate, String collectionDate, String fName, String LName, int staffID)
+	public static void option2(Connection conn, int[] productIDs, int[] quantities, String orderDate, String collectionDate, String fName, String lName, int staffID) throws SQLException
 	{
-		// Incomplete - Code for option 2 goes here
+		//Insert into ORDERS table
+		System.out.println(orderDate);
+		String stmt = "INSERT INTO ORDERS (OrderType, OrderCompleted, OrderPlaced) ";
+		stmt += "VALUES('Collection', 0, ?)";
+		PreparedStatement p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setString(1, orderDate);
+		p.executeUpdate();
+
+		//Return newly created orderID
+		stmt = "SELECT MAX (OrderID) FROM ORDERS";
+		Statement s = conn.createStatement();
+		ResultSet rs =  s.executeQuery(stmt);
+		rs.next();
+		int orderID = rs.getInt(1);
+		System.out.println(orderID);
+		//Insert into ORDER_PRODUCTS for all ordered products
+		stmt = "INSERT INTO ORDER_PRODUCTS VALUES(?, ?, ?)";
+		//Adjust quantities of products accordingly
+		String stmt1 = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount - ? ";
+		stmt1 += "WHERE ProductID = ?";
+		p = conn.prepareStatement(stmt);
+		PreparedStatement p1 = conn.prepareStatement(stmt1);
+		p.clearParameters();
+		p.setInt(1, orderID);
+		p1.clearParameters();
+		// Execute updates to order_products and adjust stock
+		for (int i = 0; i < productIDs.length; i++) {
+			System.out.println("Still running");
+			p.setInt(2, productIDs[i]);
+			p.setInt(3, quantities[i]);
+			p.executeUpdate();
+
+			p1.setInt(1, quantities[i]);
+			p1.setInt(2, productIDs[i]);
+			p1.executeUpdate();
+		}
+
+		//Update Collections table
+		stmt = "INSERT INTO COLLECTIONS VALUES(?, ?, ?, ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setInt(1, orderID);
+		p.setString(2, fName);
+		p.setString(3, lName);
+		p.setString(4, collectionDate);
+
+		System.out.println("Still running");
+		//Update staff order table
+		stmt = "INSERT INTO STAFF_ORDERS VALUES(?, ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setInt(1, staffID);
+		p.setInt(2, orderID);
+		p.executeUpdate();
+
+		// Print out updated quantities
+		printQuantities(conn, productIDs);
 	}
 
 	/**
@@ -103,18 +175,91 @@ class Assignment {
 	* @param city The city name of the delivery address
 	* @param staffID The id of the staff member who sold the order
 	*/
-	public static void option3(Connection conn, int[] productIDs, int[] quantities, String orderDate, String deliveryDate, String fName, String LName,
-				   String house, String street, String city, int staffID)
+	public static void option3(Connection conn, int[] productIDs, int[] quantities, String orderDate, String deliveryDate, String fName, String lName,
+				   String house, String street, String city, int staffID) throws SQLException
 	{
-		// Incomplete - Code for option 3 goes here
+		//Insert into ORDERS table
+		System.out.println(orderDate);
+		String stmt = "INSERT INTO ORDERS (OrderType, OrderCompleted, OrderPlaced) ";
+		stmt += "VALUES('Collection', 1, ?)";
+		PreparedStatement p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setString(1, orderDate);
+		p.executeUpdate();
+
+		//Return newly created orderID
+		stmt = "SELECT MAX (OrderID) FROM ORDERS";
+		Statement s = conn.createStatement();
+		ResultSet rs =  s.executeQuery(stmt);
+		rs.next();
+		int orderID = rs.getInt(1);
+		System.out.println(orderID);
+		//Insert into ORDER_PRODUCTS for all ordered products
+		stmt = "INSERT INTO ORDER_PRODUCTS VALUES(?, ?, ?)";
+		//Adjust quantities of products accordingly
+		String stmt1 = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount - ? ";
+		stmt1 += "WHERE ProductID = ?";
+		p = conn.prepareStatement(stmt);
+		PreparedStatement p1 = conn.prepareStatement(stmt1);
+		p.clearParameters();
+		p.setInt(1, orderID);
+		p1.clearParameters();
+		// Execute updates to order_products and adjust stock
+		for (int i = 0; i < productIDs.length; i++) {
+			System.out.println("Still running");
+			p.setInt(2, productIDs[i]);
+			p.setInt(3, quantities[i]);
+			p.executeUpdate();
+
+			p1.setInt(1, quantities[i]);
+			p1.setInt(2, productIDs[i]);
+			p1.executeUpdate();
+		}
+
+		//Update Deliveries table
+		stmt = "INSERT INTO DELIVERIES VALUES(?, ?, ?, ?, ?, ?, ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setInt(1, orderID);
+		p.setString(2, fName);
+		p.setString(3, lName);
+		p.setString(4, house);
+		p.setString(5, street);
+		p.setString(6, city);
+		p.setString(7, deliveryDate);
+
+
+		//Update staff order table
+		stmt = "INSERT INTO STAFF_ORDERS VALUES(?, ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setInt(1, staffID);
+		p.setInt(2, orderID);
+		p.executeUpdate();
+
+		// Print out updated quantities
+		printQuantities(conn, productIDs);
 	}
 
 	/**
 	* @param conn An open database connection 
 	*/
-	public static void option4(Connection conn)
+	public static void option4(Connection conn) throws SQLException
 	{
-		// Incomplete - Code for option 4 goes here
+		// SQL Processing to sum together all occurences of a productID then multiply by value
+		String stmt = "SELECT DISTINCT ProductID, ProductDesc, ";
+		stmt += "SUM(productQuantity) ";
+		stmt += "OVER(PARTITION BY ProductID) * ProductPrice AS TotalValueSold ";
+		stmt += "FROM INVENTORY NATURAL JOIN ORDER_PRODUCTS ";
+		stmt += "ORDER BY TotalValueSold DESC";
+
+		Statement s = conn.createStatement();
+		ResultSet rs = s.executeQuery(stmt);
+
+		System.out.printf("ProductID,\tProductDesc,\t\t\tTotalValueSold\n");
+		while (rs.next()) {
+			System.out.printf("%d\t\t%-30s\t£%-10.2f\n", rs.getInt(1), rs.getString(2), rs.getFloat(3));
+		}
 	}
 
 	/**
@@ -123,7 +268,27 @@ class Assignment {
 	*/
 	public static void option5(Connection conn, String date)
 	{
-		// Incomplete - Code for option 5 goes here
+		
+		//Find records that need to be removed
+		String stmt = "SELECT OrderID FROM ORDERS NATURAL JOIN COLLECTIONS ";
+		stmt += "WHERE OrderCompleted = 0 AND OrderType = 'Collection' ";
+		stmt += "AND CollectionDate < (TO_DATE(?, 'DD-MON-YY') - 8)";
+
+		PreparedStatement p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		p.setString(1, date);
+		ResultSet rs = p.executeQuery();
+
+		// Statement to re-adjust stock before deletion
+		stmt = "UPDATE INVENTORY SET ProductStockAmount = ProductStockAmount + ";
+		stmt += "(SELECT productQuantity FROM ORDER_PRODUCTS WHERE ";
+		stmt += "ORDER_PRODUCTS.ProductID = INVENTORY.ProductID AND OrderID = ?) ";
+		stmt += "WHERE ProductID IN (SELECT ProductID FROM ORDER_PRODUCTS WHERE ";
+		stmt += "OrderID = ?)";
+
+
+
+
 	}
 
 	/**
@@ -192,19 +357,40 @@ class Assignment {
 		// Code to present a looping menu, read in input data and call the appropriate option menu goes here
 		// You may use readEntry to retrieve input data
 		int choice;
+		String input;
 
 		while((choice = menu()) != 0) {
 			switch(choice) {
 				case 1 : ;
-					option1();
+					option1(conn);
 					break;
+				case 2 : ;
+					option2(conn);
+					break;
+				case 3 : ;
+					option3(conn);
+					break;
+				case 4 : ;
+					try { option4(conn); }
+					catch (SQLException e) {
+						throw new SQLException(e);
+					}
+					break;
+				case 5 : ;
+					while(!isDate(input = readEntry("Enter the date: "))) {
+						System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+					}
+					try {option5(conn, input)}
+					catch (SQLException e) {
+						throw new SQLException(e);
+					}
 			}
 		}
 
 		conn.close();
 	}
 
-	public static void option1() {
+	public static void option1(Connection conn) throws SQLException{
 		ArrayList<Integer> productID = new ArrayList<>();
 		ArrayList<Integer> productQuantity = new ArrayList<>();
 		String date;
@@ -212,33 +398,188 @@ class Assignment {
 		String input;
 
 		do {
-			while(!isNumeric(input = readEntry("Enter a product ID:"))) {
+			while(!isNumeric(input = readEntry("Enter a product ID: "))) {
 				
 				System.out.println("Please enter a numeric product ID");
 			}
 			productID.add(Integer.valueOf(input));
 
-			while(!isNumeric(input = readEntry("Enter the quantity sold:")) ||
+			while(!isNumeric(input = readEntry("Enter the quantity sold: ")) ||
 				Integer.valueOf(input) < 1) {
 
-				System.out.println("Please enter a numeric product quantity");
+				System.out.println("Please enter a numeric product quantity: ");
 			}
 			productQuantity.add(Integer.valueOf(input));
 
-		} while(readEntry("Is there another product in the order") == "Y");
+		} while(readEntry("Is there another product in the order: ").compareTo("Y") == 0);
 
-		while(!isDate(input = readEntry("Enter the date sold:"))) {
+		while(!isDate(input = readEntry("Enter the date sold: "))) {
 			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
 		}
 		date = input;
 
-		while(!isNumeric(input = readEntry("Enter your staff ID:"))){
+		while(!isNumeric(input = readEntry("Enter your staff ID: "))){
+			System.out.println("Please enter a numeric staff ID");
+		}
+		staffID = Integer.valueOf(input);
+		try {
+			option1(conn, toPrimitive(productID), toPrimitive(productQuantity), date, staffID);
+		}
+		catch (SQLException e) {
+			throw new SQLException(e);
+		}
+	}
+
+	public static void option2(Connection conn) throws SQLException{
+		ArrayList<Integer> productID = new ArrayList<>();
+		ArrayList<Integer> productQuantity = new ArrayList<>();
+		String date;
+		String collectionDate;
+		String fName;
+		String lName;
+		int staffID;
+		String input;
+		//Collect individual product information
+		do {
+			while(!isNumeric(input = readEntry("Enter a product ID: "))) {
+				
+				System.out.println("Please enter a numeric product ID");
+			}
+			productID.add(Integer.valueOf(input));
+
+			while(!isNumeric(input = readEntry("Enter the quantity sold: ")) ||
+				Integer.valueOf(input) < 1) {
+
+				System.out.println("Please enter a numeric product quantity: ");
+			}
+			productQuantity.add(Integer.valueOf(input));
+
+		} while(readEntry("Is there another product in the order: ") == "Y");
+
+		// Collect selling date
+		while(!isDate(input = readEntry("Enter the date sold: "))) {
+			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+		}
+		date = input;
+
+		// Collect collection date
+		while(!isDate(input = readEntry("Enter the date of collection: "))) {
+			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+		}
+		collectionDate = input;
+
+		// Collect first name
+		while(isEmpty(input = readEntry("Enter the first name of the collector: "))) {
+			System.out.println("Please enter a name");		                                                                                                                                                                                                                                             
+		}
+		fName = input;
+
+		// Collect last name
+		while(isEmpty(input = readEntry("Enter the last name of the collector: "))) {
+			System.out.println("Please enter a name");		                                                                                                                                                                                                                                             
+		}
+		lName = input;
+
+		// Collect staff ID
+		while(!isNumeric(input = readEntry("Enter your staff ID: "))){
 			System.out.println("Please enter a numeric staff ID");
 		}
 		staffID = Integer.valueOf(input);
 
-		option1(getConnection(), toPrimitive(productID), toPrimitive(productQuantity), date, staffID);
+		// Execute storage operation
+		try {
+			option2(conn, toPrimitive(productID), toPrimitive(productQuantity), date, collectionDate, fName, lName, staffID);
+		}
+		catch (SQLException e) {
+			throw new SQLException(e);
+		}
+	}
 
+		public static void option3(Connection conn) throws SQLException{
+		ArrayList<Integer> productID = new ArrayList<>();
+		ArrayList<Integer> productQuantity = new ArrayList<>();
+		String date;
+		String deliveryDate;
+		String fName;
+		String lName;
+		String house;
+		String street;
+		String city;
+		int staffID;
+		String input;
+		//Collect individual product information
+		do {
+			while(!isNumeric(input = readEntry("Enter a product ID: "))) {
+				
+				System.out.println("Please enter a numeric product ID");
+			}
+			productID.add(Integer.valueOf(input));
+
+			while(!isNumeric(input = readEntry("Enter the quantity sold: ")) ||
+				Integer.valueOf(input) < 1) {
+
+				System.out.println("Please enter a numeric product quantity: ");
+			}
+			productQuantity.add(Integer.valueOf(input));
+
+		} while(readEntry("Is there another product in the order: ") == "Y");
+
+		// Collect selling date
+		while(!isDate(input = readEntry("Enter the date sold: "))) {
+			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+		}
+		date = input;
+
+		// Collect collection date
+		while(!isDate(input = readEntry("Enter the date of delivery: "))) {
+			System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
+		}
+		deliveryDate = input;
+
+		// Collect first name
+		while(isEmpty(input = readEntry("Enter the first name of the recipient: "))) {
+			System.out.println("Please enter a name");		                                                                                                                                                                                                                                             
+		}
+		fName = input;
+
+		// Collect last name
+		while(isEmpty(input = readEntry("Enter the last name of the recipient: "))) {
+			System.out.println("Please enter a name");		                                                                                                                                                                                                                                             
+		}
+		lName = input;
+
+		// Collect house name/number
+		while(isEmpty(input = readEntry("Enter the house name/no.: "))) {
+			System.out.println("Please enter a house name or number");		                                                                                                                                                                                                                                             
+		}
+		house = input;
+
+		// Collect street
+		while(isEmpty(input = readEntry("Enter the street: "))) {
+			System.out.println("Please enter a street");		                                                                                                                                                                                                                                             
+		}
+		street = input;
+
+		// Collect city
+		while(isEmpty(input = readEntry("Enter the city: "))) {
+			System.out.println("Please enter a city");		                                                                                                                                                                                                                                             
+		}
+		city = input;
+
+		// Collect staff ID
+		while(!isNumeric(input = readEntry("Enter your staff ID: "))){
+			System.out.println("Please enter a numeric staff ID");
+		}
+		staffID = Integer.valueOf(input);
+
+		// Execute storage operation
+		try {
+			option3(conn, toPrimitive(productID), toPrimitive(productQuantity), date, deliveryDate, 
+				fName, lName, house, street, city, staffID);
+		}
+		catch (SQLException e) {
+			throw new SQLException(e);
+		}
 	}
 
 	public static int menu() {
@@ -263,6 +604,8 @@ class Assignment {
 	}
 
 	public static boolean isNumeric(String s) {
+		if (s.length() == 0) return false;
+
 		for (char c : s.toCharArray()) {
 			if (!Character.isDigit(c)) {
 				return false;
@@ -290,5 +633,38 @@ class Assignment {
 		}
 
 		return res;
+	}
+
+	public static boolean isEmpty(String s) {
+		return s.length() == 0;
+	}
+
+
+
+	public static void printQuantities(Connection conn, int[] productIDs) throws SQLException {
+		// Statement to select ID and quantity with given IDs
+		String stmt = "SELECT ProductID, ProductStockAmount FROM INVENTORY WHERE ProductID IN (";
+		//Define suitable number of bind characters
+		for (int i = 0; i < productIDs.length; i++) {
+			stmt += "?, ";
+		}
+		//Tidy statement string
+		stmt = stmt.substring(0, stmt.length() - 2);
+		stmt += ")";
+		//Create prepared statement
+		PreparedStatement p = conn.prepareStatement(stmt);
+		p.clearParameters();
+		//Bind each given id
+		for (int i = 1; i <= productIDs.length; i++) {
+			p.setInt(i, productIDs[i - 1]);		
+		}
+		//Execute query to generate result set
+		ResultSet rs = p.executeQuery();
+		//Print table body
+		while(rs.next()){
+			System.out.printf("Product ID %d is now at %d.\n", rs.getInt(1), rs.getInt(2));
+		}
+
+
 	}
 }
