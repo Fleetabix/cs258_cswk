@@ -266,7 +266,7 @@ class Assignment {
 	* @param conn An open database connection 
 	* @param date The target date to test collection deliveries against
 	*/
-	public static void option5(Connection conn, String date)
+	public static void option5(Connection conn, String date) throws SQLException
 	{
 		
 		//Find records that need to be removed
@@ -285,7 +285,28 @@ class Assignment {
 		stmt += "ORDER_PRODUCTS.ProductID = INVENTORY.ProductID AND OrderID = ?) ";
 		stmt += "WHERE ProductID IN (SELECT ProductID FROM ORDER_PRODUCTS WHERE ";
 		stmt += "OrderID = ?)";
+		p = conn.prepareStatement(stmt);
+		p.clearParameters();
 
+		// Statement to delete the orders
+		String stmt1 = "DELETE FROM ORDERS WHERE OrderID = ?";
+		PreparedStatement p1 = conn.prepareStatement(stmt1);
+		p.clearParameters();
+
+		int orderID = 0;
+		while(rs.next()) {
+
+			orderID = rs.getInt(1);
+			// Update stock
+			p.setInt(1, orderID);
+			p.setInt(2, orderID);
+			p.executeUpdate();
+			// Delete cancelled orders
+			p1.setInt(1, orderID);
+			p1.executeUpdate();
+
+			System.out.printf("Order number %d has been cancelled\n", orderID);
+		}
 
 
 
@@ -380,7 +401,7 @@ class Assignment {
 					while(!isDate(input = readEntry("Enter the date: "))) {
 						System.out.println("Please enter a valid date");		                                                                                                                                                                                                                                             
 					}
-					try {option5(conn, input)}
+					try {option5(conn, input);}
 					catch (SQLException e) {
 						throw new SQLException(e);
 					}
